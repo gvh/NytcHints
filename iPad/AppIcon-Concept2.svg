@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="#FFFFFF"/>
+
+  <!-- Yellow tile (top-left) -->
+  <rect x="88" y="88" width="400" height="400" rx="64" ry="64" fill="#F9DF6D"/>
+
+  <!-- Green tile (top-right) -->
+  <rect x="536" y="88" width="400" height="400" rx="64" ry="64" fill="#A0C35A"/>
+
+  <!-- Blue tile (bottom-left) -->
+  <rect x="88" y="536" width="400" height="400" rx="64" ry="64" fill="#B0C4EF"/>
+
+  <!-- Purple tile (bottom-right), "flipped" to reveal a checkmark -->
+  <rect x="536" y="536" width="400" height="400" rx="64" ry="64" fill="#BA81C5"/>
+  <path d="M 624 756 L 704 836 L 856 656"
+        fill="none" stroke="#FFFFFF" stroke-width="46"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

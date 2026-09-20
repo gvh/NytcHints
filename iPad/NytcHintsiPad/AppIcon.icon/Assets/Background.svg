@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Background layer: 2x2 grid of Connections tile colors -->
+  <rect width="1024" height="1024" fill="#1C1C1E"/>
+
+  <!-- Yellow tile (top-left) -->
+  <rect x="128" y="128" width="360" height="360" rx="58" ry="58" fill="#F9DF6D"/>
+
+  <!-- Green tile (top-right) -->
+  <rect x="536" y="128" width="360" height="360" rx="58" ry="58" fill="#A0C35A"/>
+
+  <!-- Blue tile (bottom-left) -->
+  <rect x="128" y="536" width="360" height="360" rx="58" ry="58" fill="#B0C4EF"/>
+
+  <!-- Purple tile (bottom-right) - sits under the checkmark foreground layer -->
+  <rect x="536" y="536" width="360" height="360" rx="58" ry="58" fill="#BA81C5"/>
+</svg>

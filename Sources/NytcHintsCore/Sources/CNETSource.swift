@@ -24,7 +24,7 @@ public struct CNETSource: HintSource {
 
     public func parse(_ data: Data, for date: PuzzleDate) throws(HintError) -> [Hint] {
         let html = try HTML.string(from: data)
-        try Self.checkPublished(html, for: date)
+        try HTML.checkPublished(html, for: date)
 
         guard let section = HTML.section(afterHeadingContaining: "hint", in: html) else {
             throw .parse("hint section not found")
@@ -37,16 +37,6 @@ public struct CNETSource: HintSource {
             }
         }
         return hints
-    }
-
-    /// Articles go up the evening before the puzzle date, so allow a small window.
-    private static func checkPublished(_ html: String, for date: PuzzleDate) throws(HintError) {
-        guard let published = HTML.metaContent(property: "article:published_time", in: html),
-              let day = PuzzleDate(string: String(published.prefix(10)))
-        else { throw .parse("publish date not found") }
-        guard (-1...3).contains(date.days(since: day)) else {
-            throw .parse("article was published \(day), not for \(date)")
-        }
     }
 
     /// "Yellow group hint: Stretches." → Hint(color: .yellow, text: "Stretches.")

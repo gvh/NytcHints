@@ -7,6 +7,7 @@ A command-line tool that shows hints for the NY Times Connections puzzle, so you
 ```
 ./run.sh mash              # Mashable hints for today
 ./run.sh cnet 2026-09-18   # CNET hints for a specific date
+./run.sh tech              # TechRadar hints for today
 ```
 
 ## Adding a hint source

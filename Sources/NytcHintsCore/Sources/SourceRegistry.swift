@@ -3,11 +3,13 @@
 public enum SourceName: String, CaseIterable, Sendable {
     case cnet
     case mash
+    case tech
 
     public var source: any HintSource {
         switch self {
         case .cnet: CNETSource()
         case .mash: MashableSource()
+        case .tech: TechRadarSource()
         }
     }
 }

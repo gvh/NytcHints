@@ -12,8 +12,9 @@ enum HTML {
     /// The HTML after the first `<h2>` whose text contains `keyword`, up to the next `<h2`.
     /// Sites put answers in later sections, so confining parsing to this slice keeps them out.
     static func section(afterHeadingContaining keyword: String, in html: String) -> Substring? {
-        let heading = /<h2[^>]*>(?<title>[^<]*)<\/h2>/
-        guard let start = html.matches(of: heading).first(where: { $0.title.localizedCaseInsensitiveContains(keyword) }) else {
+        // Headings may wrap their text in inner tags (`<h2><span>…</span></h2>`), so strip them before matching.
+        let heading = /<h2[^>]*>(?<title>.*?)<\/h2>/.dotMatchesNewlines()
+        guard let start = html.matches(of: heading).first(where: { text(from: String($0.title)).localizedCaseInsensitiveContains(keyword) }) else {
             return nil
         }
         let rest = html[start.range.upperBound...]
@@ -31,6 +32,17 @@ enum HTML {
             return decodeEntities(String(content.value))
         }
         return nil
+    }
+
+    /// Articles go up the evening before the puzzle date, so allow a small window around it.
+    /// Guards against a site redirecting a date's URL to a different year's puzzle.
+    static func checkPublished(_ html: String, for date: PuzzleDate) throws(HintError) {
+        guard let published = metaContent(property: "article:published_time", in: html),
+              let day = PuzzleDate(string: String(published.prefix(10)))
+        else { throw .parse("publish date not found") }
+        guard (-1...3).contains(date.days(since: day)) else {
+            throw .parse("article was published \(day), not for \(date)")
+        }
     }
 
     /// Strips tags, decodes entities, and collapses whitespace.

@@ -49,6 +49,14 @@ public struct PuzzleDate: Equatable, Sendable, CustomStringConvertible {
         return calendar.dateComponents([.day], from: day(other), to: day(self)).day!
     }
 
+    /// Lowercase English weekday name ("sunday"…"saturday").
+    public var weekdayName: String {
+        let calendar = Self.calendar
+        let date = calendar.date(from: DateComponents(year: year, month: month, day: day))!
+        let names = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+        return names[calendar.component(.weekday, from: date) - 1]
+    }
+
     /// `YYYY-MM-DD`
     public var description: String {
         String(format: "%04d-%02d-%02d", year, month, day)

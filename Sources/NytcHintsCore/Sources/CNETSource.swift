@@ -2,8 +2,8 @@ import Foundation
 
 /// CNET's daily "Today's NYT Connections Hints and Answers" article.
 ///
-/// The URL has no year and CNET redirects it to the matching article (whose real slug
-/// includes the puzzle number), so the article's publish date is checked against the
+/// The URL has a weekday but no year or puzzle number, and CNET redirects it to the matching
+/// article (whose real slug appends the puzzle number), so the article's publish date is checked against the
 /// requested date to make sure it isn't a different year's puzzle.
 /// Parsing is confined to the "Hints for today's Connections groups" section.
 public struct CNETSource: HintSource {
@@ -19,7 +19,7 @@ public struct CNETSource: HintSource {
 
     public func url(for date: PuzzleDate) -> URL {
         let month = Self.months[date.month - 1]
-        return URL(string: "https://www.cnet.com/tech/gaming/todays-nyt-connections-hints-and-answers-for-\(month)-\(date.day)")!
+        return URL(string: "https://www.cnet.com/tech/gaming/todays-nyt-connections-hints-and-answers-for-\(date.weekdayName)-\(month)-\(date.day)")!
     }
 
     public func parse(_ data: Data, for date: PuzzleDate) throws(HintError) -> [Hint] {

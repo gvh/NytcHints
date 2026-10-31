@@ -7,9 +7,9 @@ struct CNETSourceTests {
     let date = PuzzleDate(year: 2026, month: 9, day: 17)!
 
     @Test func buildsDatedURL() {
-        #expect(source.url(for: date).absoluteString
-            == "https://www.cnet.com/tech/gaming/todays-nyt-connections-hints-and-answers-for-thursday-sept-17")
-        #expect(source.url(for: PuzzleDate(year: 2026, month: 3, day: 1)!).absoluteString.hasSuffix("-for-sunday-march-1"))
+        #expect(source.url(for: PuzzleDate(year: 2026, month: 10, day: 31)!).absoluteString
+            == "https://www.cnet.com/tech/gaming/todays-nyt-connections-hints-answers-october-31-1238/")
+        #expect(source.url(for: date).absoluteString.hasSuffix("-september-17-1194/"))
     }
 
     /// Markup mirrors the live page (2026-09-17), with made-up answer sections after the hints.

@@ -10,19 +10,13 @@ public struct CNETSource: HintSource {
 
     public let name = "CNET"
 
-    private static let months = [
-        "january", "february", "march", "april", "may", "june",
-        "july", "august", "september", "october", "november", "december",
-    ]
-
     /// Known puzzle number/date pair; puzzles are numbered one per day.
     private static let anchorDate = PuzzleDate(year: 2026, month: 10, day: 31)!
     private static let anchorNumber = 1238
 
     public func url(for date: PuzzleDate) -> URL {
-        let month = Self.months[date.month - 1]
         let number = Self.anchorNumber + date.days(since: Self.anchorDate)
-        return URL(string: "https://www.cnet.com/tech/gaming/todays-nyt-connections-hints-answers-\(month)-\(date.day)-\(number)/")!
+        return URL(string: "https://www.cnet.com/tech/gaming/todays-nyt-connections-hints-answers-\(date.monthName)-\(date.day)-\(number)/")!
     }
 
     public func parse(_ data: Data, for date: PuzzleDate) throws(HintError) -> [Hint] {

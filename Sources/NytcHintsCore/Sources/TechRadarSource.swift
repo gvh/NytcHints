@@ -11,14 +11,11 @@ public struct TechRadarSource: HintSource {
 
     public let name = "TechRadar"
 
-    private static let months = [
-        "january", "february", "march", "april", "may", "june",
-        "july", "august", "september", "october", "november", "december",
-    ]
+    /// Misspelled labels seen on the site (the 2026-11-21 article spelled green "Geen").
+    private static let labelCorrections = ["geen": "green"]
 
     public func url(for date: PuzzleDate) -> URL {
-        let month = Self.months[date.month - 1]
-        return URL(string: "https://www.techradar.com/gaming/nyt-connections-today-answers-hints-\(date.day)-\(month)-\(date.year)")!
+        URL(string: "https://www.techradar.com/gaming/nyt-connections-today-answers-hints-\(date.day)-\(date.monthName)-\(date.year)")!
     }
 
     public func parse(_ data: Data, for date: PuzzleDate) throws(HintError) -> [Hint] {
@@ -34,18 +31,8 @@ public struct TechRadarSource: HintSource {
 
         var hints: [Hint] = []
         for match in list.items.matches(of: /<li[^>]*>(?<item>.*?)<\/li>/.dotMatchesNewlines()) {
-            hints.append(try Self.hint(from: HTML.text(from: String(match.item))))
+            hints.append(try Hint.parse(colonLine: HTML.text(from: String(match.item)), labelCorrections: Self.labelCorrections))
         }
         return hints
-    }
-
-    /// "YELLOW: A pile of things" → Hint(color: .yellow, text: "A pile of things")
-    private static func hint(from line: String) throws(HintError) -> Hint {
-        guard let colon = line.firstIndex(of: ":"),
-              let color = HintColor(label: String(line[..<colon]))
-        else { throw .parse("unrecognized hint line '\(line)'") }
-        let text = line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)
-        guard !text.isEmpty else { throw .parse("empty \(color.label) hint") }
-        return Hint(color: color, text: text)
     }
 }

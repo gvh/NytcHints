@@ -5,9 +5,7 @@ public enum HintColor: String, CaseIterable, Sendable {
     case yellow, green, blue, purple
 
     public init?(label: String) {
-        let normalized = label.trimmingCharacters(in: .whitespaces).lowercased()
-        // TechRadar's 2026-11-21 article spelled green "Geen".
-        self.init(rawValue: normalized == "geen" ? "green" : normalized)
+        self.init(rawValue: label.trimmingCharacters(in: .whitespaces).lowercased())
     }
 
     public var label: String { rawValue.capitalized }
@@ -21,6 +19,19 @@ public struct Hint: Equatable, Sendable {
     public init(color: HintColor, text: String) {
         self.color = color
         self.text = text
+    }
+
+    /// Parses a "Yellow: Bendable" line. `labelCorrections` maps a site's known misspellings
+    /// (lowercased) to the intended color label.
+    static func parse(colonLine line: String, labelCorrections: [String: String] = [:]) throws(HintError) -> Hint {
+        guard let colon = line.firstIndex(of: ":") else { throw .parse("unrecognized hint line '\(line)'") }
+        let label = line[..<colon].trimmingCharacters(in: .whitespaces)
+        guard let color = HintColor(label: labelCorrections[label.lowercased()] ?? label) else {
+            throw .parse("unrecognized hint line '\(line)'")
+        }
+        let text = line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty else { throw .parse("empty \(color.label) hint") }
+        return Hint(color: color, text: text)
     }
 
     /// True when `text` looks like the group's answer words rather than a hint:

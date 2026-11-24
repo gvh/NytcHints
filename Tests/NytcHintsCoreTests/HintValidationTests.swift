@@ -81,5 +81,6 @@ struct HintValidationTests {
     @Test func colorLabelsAreCaseInsensitive() {
         #expect(HintColor(label: " PURPLE ") == .purple)
         #expect(HintColor(label: "Orange") == nil)
+        #expect(HintColor(label: "Geen") == nil)  // a TechRadar typo, corrected in TechRadarSource only
     }
 }

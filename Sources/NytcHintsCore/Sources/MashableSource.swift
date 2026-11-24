@@ -10,14 +10,8 @@ public struct MashableSource: HintSource {
 
     public let name = "Mashable"
 
-    private static let months = [
-        "january", "february", "march", "april", "may", "june",
-        "july", "august", "september", "october", "november", "december",
-    ]
-
     public func url(for date: PuzzleDate) -> URL {
-        let month = Self.months[date.month - 1]
-        return URL(string: "https://mashable.com/entertainment/nyt-connections-hint-answer-today-\(month)-\(date.day)-\(date.year)")!
+        URL(string: "https://mashable.com/entertainment/nyt-connections-hint-answer-today-\(date.monthName)-\(date.day)-\(date.year)")!
     }
 
     public func parse(_ data: Data, for date: PuzzleDate) throws(HintError) -> [Hint] {
@@ -32,18 +26,8 @@ public struct MashableSource: HintSource {
 
         var hints: [Hint] = []
         for match in list.items.matches(of: /<li>(?<item>.*?)<\/li>/.dotMatchesNewlines()) {
-            hints.append(try Self.hint(from: HTML.text(from: String(match.item))))
+            hints.append(try Hint.parse(colonLine: HTML.text(from: String(match.item))))
         }
         return hints
-    }
-
-    /// "Yellow: Bendable" → Hint(color: .yellow, text: "Bendable")
-    private static func hint(from line: String) throws(HintError) -> Hint {
-        guard let colon = line.firstIndex(of: ":"),
-              let color = HintColor(label: String(line[..<colon]))
-        else { throw .parse("unrecognized hint line '\(line)'") }
-        let text = line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)
-        guard !text.isEmpty else { throw .parse("empty \(color.label) hint") }
-        return Hint(color: color, text: text)
     }
 }

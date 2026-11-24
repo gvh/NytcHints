@@ -40,6 +40,9 @@ public struct PuzzleDate: Equatable, Sendable, CustomStringConvertible {
         PuzzleDate(date: Date())
     }
 
+    /// The first Connections puzzle (#1).
+    public static let firstPuzzle = PuzzleDate(year: 2023, month: 6, day: 12)!
+
     /// Whole days from `other` to `self` (positive when `self` is later).
     public func days(since other: PuzzleDate) -> Int {
         let calendar = Self.calendar
@@ -57,14 +60,24 @@ public struct PuzzleDate: Equatable, Sendable, CustomStringConvertible {
         return names[calendar.component(.weekday, from: date) - 1]
     }
 
+    /// Lowercase English month name ("january"…"december"), as used in article URLs.
+    var monthName: String {
+        Self.monthNames[month - 1]
+    }
+
+    private static let monthNames = [
+        "january", "february", "march", "april", "may", "june",
+        "july", "august", "september", "october", "november", "december",
+    ]
+
     /// `YYYY-MM-DD`
     public var description: String {
         String(format: "%04d-%02d-%02d", year, month, day)
     }
 
-    private static var calendar: Calendar {
+    private static let calendar: Calendar = {
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = .current
+        calendar.timeZone = .autoupdatingCurrent
         return calendar
-    }
+    }()
 }

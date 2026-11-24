@@ -22,7 +22,7 @@ Each source is a URL plus a parser for the response.
 
 ## iPad app
 
-`iPad/NytcHintsiPad.xcodeproj` is a UIKit iPad app. It uses the `NytcHintsCore` library from this package, the same code the command-line tool uses, so a new or fixed source works in both.
+`iPad/NytcHints.xcodeproj` is a UIKit iPad app. It uses the `NytcHintsCore` library from this package, the same code the command-line tool uses, so a new or fixed source works in both.
 
 Open it in Xcode, pick an iPad simulator, and run. To run on a real iPad, set your team under Signing & Capabilities first.
 
@@ -30,5 +30,5 @@ Open it in Xcode, pick an iPad simulator, and run. To run on a real iPad, set yo
 
 - `Sources/NytcHintsCore/`: shared models, sources, parsing and fetching
 - `Sources/nytcHints/`: command-line argument handling and terminal output
-- `iPad/NytcHintsiPad/`: iPad UI
+- `iPad/NytcHints/`: iPad UI
 - `Tests/NytcHintsCoreTests/`: tests for the shared code

@@ -12,7 +12,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
     ],
     targets: [
-        // Shared by the command-line tool and the iPad app (iPad/NytcHintsiPad.xcodeproj).
+        // Shared by the command-line tool and the iPad app (iPad/NytcHints.xcodeproj).
         .target(name: "NytcHintsCore"),
         .executableTarget(
             name: "nytcHints",

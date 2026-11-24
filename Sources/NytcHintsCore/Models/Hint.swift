@@ -61,7 +61,7 @@ extension [Hint] {
         for hint in self {
             // The text isn't included in the error so a leaked answer is never shown.
             guard !Hint.looksLikeAnswerList(hint.text) else {
-                throw .parse("\(hint.color.label) hint looks like a list of answers, so none are shown")
+                throw .answersDetected(hint.color)
             }
             guard byColor.updateValue(hint, forKey: hint.color) == nil else {
                 throw .parse("duplicate \(hint.color.label) hint")
@@ -91,6 +91,8 @@ public enum HintError: Error, Sendable, CustomStringConvertible {
     case network(String)
     case badStatus(Int)
     case parse(String)
+    /// A hint looked like the answer words, so the whole set is withheld.
+    case answersDetected(HintColor)
 
     public var description: String {
         switch self {
@@ -98,6 +100,7 @@ public enum HintError: Error, Sendable, CustomStringConvertible {
         case .network(let message): "network error: \(message)"
         case .badStatus(let code): "unexpected HTTP status \(code)"
         case .parse(let message): "could not parse response: \(message)"
+        case .answersDetected(let color): "\(color.label) hint looks like a list of answers, so none are shown"
         }
     }
 }

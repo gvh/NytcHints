@@ -45,11 +45,12 @@ public struct PuzzleDate: Equatable, Sendable, CustomStringConvertible {
 
     /// Whole days from `other` to `self` (positive when `self` is later).
     public func days(since other: PuzzleDate) -> Int {
-        let calendar = Self.calendar
-        func day(_ d: PuzzleDate) -> Date {
-            calendar.date(from: DateComponents(year: d.year, month: d.month, day: d.day))!
-        }
-        return calendar.dateComponents([.day], from: day(other), to: day(self)).day!
+        Self.calendar.dateComponents([.day], from: other.startOfDay, to: startOfDay).day!
+    }
+
+    /// Midnight at the start of this day in the local time zone.
+    public var startOfDay: Date {
+        Self.calendar.date(from: DateComponents(year: year, month: month, day: day))!
     }
 
     /// Lowercase English month name ("january"…"december"), as used in article URLs.

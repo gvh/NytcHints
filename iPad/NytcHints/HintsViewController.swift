@@ -5,11 +5,21 @@ import UIKit
 final class HintsViewController: UIViewController {
     private let sourceControl = UISegmentedControl(items: SourceName.allCases.map(\.source.name))
     private let datePicker = UIDatePicker()
+    private let controls = UIStackView()
+    private let controlsSpacer = UIView()
     private let cardsStack = UIStackView()
     private let statusLabel = UILabel()
     private let spinner = UIActivityIndicatorView(style: .large)
+    private let refreshControl = UIRefreshControl()
 
     private var loadTask: Task<Void, Never>?
+
+    /// Successful results for this session, so flipping between sources doesn't refetch whole articles.
+    /// Failures aren't stored, so pulling down always retries them.
+    private var cache: [String: [Hint]] = [:]
+
+    /// The day the date limits were last computed for.
+    private var lastToday = PuzzleDate.today
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -21,13 +31,17 @@ final class HintsViewController: UIViewController {
 
         datePicker.datePickerMode = .date
         datePicker.preferredDatePickerStyle = .compact
-        datePicker.maximumDate = Calendar.current.date(byAdding: .day, value: 1, to: Date())
         datePicker.addTarget(self, action: #selector(selectionChanged), for: .valueChanged)
+        updateDateLimits()
 
-        let controls = UIStackView(arrangedSubviews: [sourceControl, UIView(), datePicker])
-        controls.axis = .horizontal
-        controls.alignment = .center
+        controls.addArrangedSubview(sourceControl)
+        controls.addArrangedSubview(controlsSpacer)
+        controls.addArrangedSubview(datePicker)
         controls.spacing = 16
+        updateControlsLayout()
+        registerForTraitChanges([UITraitHorizontalSizeClass.self, UITraitPreferredContentSizeCategory.self]) { (self: Self, _) in
+            self.updateControlsLayout()
+        }
 
         cardsStack.axis = .vertical
         cardsStack.spacing = 12
@@ -45,12 +59,17 @@ final class HintsViewController: UIViewController {
         content.spacing = 24
         content.translatesAutoresizingMaskIntoConstraints = false
 
+        refreshControl.addTarget(self, action: #selector(refreshPulled), for: .valueChanged)
+
         let scrollView = UIScrollView()
         scrollView.alwaysBounceVertical = true
+        scrollView.refreshControl = refreshControl
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(content)
         view.addSubview(scrollView)
 
+        // The content scrolls vertically only: its width is the scroll view's width, so the
+        // horizontal content size is fully determined and the readable-width insets line up with it.
         let readable = scrollView.readableContentGuide
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -58,43 +77,127 @@ final class HintsViewController: UIViewController {
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
 
+            scrollView.contentLayoutGuide.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
             content.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: 24),
             content.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -24),
             content.leadingAnchor.constraint(equalTo: readable.leadingAnchor),
             content.trailingAnchor.constraint(equalTo: readable.trailingAnchor),
         ])
 
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(dayMayHaveChanged),
+            name: UIApplication.didBecomeActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(dayMayHaveChanged),
+            name: UIApplication.significantTimeChangeNotification, object: nil)
+
         loadHints()
+    }
+
+    /// Source and date sit side by side when there's room, and stack when the width is compact
+    /// or the text size is large enough that they'd be cramped.
+    private func updateControlsLayout() {
+        let stacked = traitCollection.horizontalSizeClass == .compact
+            || traitCollection.preferredContentSizeCategory.isAccessibilityCategory
+        controls.axis = stacked ? .vertical : .horizontal
+        controls.alignment = stacked ? .leading : .center
+        controls.spacing = stacked ? 12 : 16
+        controlsSpacer.isHidden = stacked
+    }
+
+    /// Puzzles exist from the first Connections day through tomorrow's (posted the evening before).
+    private func updateDateLimits() {
+        let calendar = Calendar.current
+        datePicker.minimumDate = PuzzleDate.firstPuzzle.startOfDay
+        if let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: Date())) {
+            datePicker.maximumDate = calendar.date(byAdding: .day, value: 1, to: tomorrow)?.addingTimeInterval(-1)
+        }
+    }
+
+    /// If the app was left open past midnight, roll the limits forward, and the picker too if it was showing "today".
+    @objc private func dayMayHaveChanged() {
+        let today = PuzzleDate.today
+        guard today != lastToday else { return }
+        let wasShowingToday = PuzzleDate(date: datePicker.date) == lastToday
+        lastToday = today
+        updateDateLimits()
+        if wasShowingToday {
+            datePicker.setDate(Date(), animated: false)
+            loadHints()
+        }
     }
 
     @objc private func selectionChanged() {
         loadHints()
     }
 
-    private func loadHints() {
+    @objc private func refreshPulled() {
+        loadHints(useCache: false)
+    }
+
+    private func loadHints(useCache: Bool = true) {
         let source = SourceName.allCases[sourceControl.selectedSegmentIndex].source
         let date = PuzzleDate(date: datePicker.date)
+        let cacheKey = "\(source.name)|\(date)"
 
         loadTask?.cancel()
         show(status: nil)
         cardsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        spinner.startAnimating()
 
-        loadTask = Task {
-            let result = await Fetcher().fetch(source, for: date)
-            guard !Task.isCancelled else { return }
+        if useCache, let hints = cache[cacheKey] {
+            refreshControl.endRefreshing()
             spinner.stopAnimating()
+            show(hints)
+            return
+        }
+
+        // The refresh control is its own progress indicator while it's pulled down.
+        if !refreshControl.isRefreshing {
+            spinner.startAnimating()
+        }
+
+        loadTask = Task { [weak self] in
+            let result = await Fetcher().fetch(source, for: date)
+            guard !Task.isCancelled, let self else { return }
+            spinner.stopAnimating()
+            refreshControl.endRefreshing()
             switch result {
             case .success(let hints):
-                hints.forEach { cardsStack.addArrangedSubview(HintCardView(hint: $0)) }
+                cache[cacheKey] = hints
+                show(hints)
             case .failure(let error):
-                show(status: "\(source.name) hints unavailable for \(date).\n\(error)")
+                let message = "\(source.name) hints unavailable for \(date).\n\(error.userMessage)"
+                show(status: message)
+                UIAccessibility.post(notification: .announcement, argument: message)
             }
         }
+    }
+
+    private func show(_ hints: [Hint]) {
+        hints.forEach { cardsStack.addArrangedSubview(HintCardView(hint: $0)) }
+        UIAccessibility.post(notification: .announcement, argument: "Hints loaded")
     }
 
     private func show(status: String?) {
         statusLabel.text = status
         statusLabel.isHidden = status == nil
+    }
+}
+
+private extension HintError {
+    /// Plain-language text for the status label. The technical `description` stays for the command-line tool.
+    var userMessage: String {
+        switch self {
+        case .network:
+            "Couldn't reach the site. Check your connection, then pull down to try again."
+        case .badStatus(404):
+            "No hints have been posted for this date yet. Pull down to try again."
+        case .badStatus:
+            "The site had a problem. Pull down to try again later."
+        case .answersDetected(let color):
+            "The \(color.label.lowercased()) hint looked like it gave away the answers, so none are shown. Try another source."
+        case .parse, .invalidDate:
+            "Couldn't read the hints from this page. The site may have changed its layout. Try another source."
+        }
     }
 }

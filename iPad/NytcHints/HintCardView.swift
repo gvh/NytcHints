@@ -14,12 +14,13 @@ final class HintCardView: UIView {
         layer.cornerCurve = .continuous
 
         colorLabel.text = hint.color.label.uppercased()
-        colorLabel.font = .preferredFont(forTextStyle: .caption1).withWeight(.bold)
-        colorLabel.textColor = UIColor.black.withAlphaComponent(0.6)
+        colorLabel.font = .scaled(.caption1, weight: .bold)
+        // 75% black keeps at least 5:1 contrast on all four tile colors (60% was 3.7:1 on purple).
+        colorLabel.textColor = UIColor.black.withAlphaComponent(0.75)
         colorLabel.adjustsFontForContentSizeCategory = true
 
         hintLabel.text = hint.text
-        hintLabel.font = .preferredFont(forTextStyle: .title2).withWeight(.semibold)
+        hintLabel.font = .scaled(.title2, weight: .semibold)
         hintLabel.textColor = .black
         hintLabel.numberOfLines = 0
         hintLabel.adjustsFontForContentSizeCategory = true
@@ -57,8 +58,9 @@ extension HintColor {
 }
 
 private extension UIFont {
-    func withWeight(_ weight: UIFont.Weight) -> UIFont {
-        let descriptor = fontDescriptor.addingAttributes([.traits: [UIFontDescriptor.TraitKey.weight: weight]])
-        return UIFont(descriptor: descriptor, size: 0)
+    /// A system font at the text style's default size and the given weight, scaled with Dynamic Type.
+    static func scaled(_ style: UIFont.TextStyle, weight: UIFont.Weight) -> UIFont {
+        let defaultSize = preferredFont(forTextStyle: style, compatibleWith: UITraitCollection(preferredContentSizeCategory: .large)).pointSize
+        return UIFontMetrics(forTextStyle: style).scaledFont(for: .systemFont(ofSize: defaultSize, weight: weight))
     }
 }

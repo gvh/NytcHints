@@ -20,8 +20,14 @@ final class HintCardView: UIView {
         colorLabel.adjustsFontForContentSizeCategory = true
 
         hintLabel.text = hint.text
-        hintLabel.font = .scaled(.title2, weight: .semibold)
-        hintLabel.textColor = .black
+        if hint.isWithheld {
+            // Make it clear the app hid this hint, so it doesn't read as the source having none.
+            hintLabel.font = .scaled(.body, weight: .regular).italic()
+            hintLabel.textColor = UIColor.black.withAlphaComponent(0.75)
+        } else {
+            hintLabel.font = .scaled(.title2, weight: .semibold)
+            hintLabel.textColor = .black
+        }
         hintLabel.numberOfLines = 0
         hintLabel.adjustsFontForContentSizeCategory = true
 
@@ -38,7 +44,9 @@ final class HintCardView: UIView {
         ])
 
         isAccessibilityElement = true
-        accessibilityLabel = "\(hint.color.label) hint: \(hint.text)"
+        accessibilityLabel = hint.isWithheld
+            ? "\(hint.color.label) hint withheld: it looked like it gave away the answers"
+            : "\(hint.color.label) hint: \(hint.text)"
     }
 
     @available(*, unavailable)
@@ -58,6 +66,10 @@ extension HintColor {
 }
 
 private extension UIFont {
+    func italic() -> UIFont {
+        fontDescriptor.withSymbolicTraits(.traitItalic).map { UIFont(descriptor: $0, size: 0) } ?? self
+    }
+
     /// A system font at the text style's default size and the given weight, scaled with Dynamic Type.
     static func scaled(_ style: UIFont.TextStyle, weight: UIFont.Weight) -> UIFont {
         let defaultSize = preferredFont(forTextStyle: style, compatibleWith: UITraitCollection(preferredContentSizeCategory: .large)).pointSize

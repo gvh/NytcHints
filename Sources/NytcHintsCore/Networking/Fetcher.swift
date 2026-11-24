@@ -1,12 +1,16 @@
 import Foundation
 
-/// Fetches every source concurrently and parses each response.
-/// A failure in one source never prevents the others from reporting.
+/// Fetches hint sources and parses each response.
+/// `fetchAll` runs sources concurrently; a failure in one never prevents the others from reporting.
 public struct Fetcher: Sendable {
     public var session: URLSession
 
-    public init(session: URLSession = .shared) {
+    /// Seconds to wait for a response before giving up, so a dead connection doesn't leave a UI spinning.
+    public var timeout: TimeInterval
+
+    public init(session: URLSession = .shared, timeout: TimeInterval = 15) {
         self.session = session
+        self.timeout = timeout
     }
 
     public func fetchAll(_ sources: [any HintSource], for date: PuzzleDate) async -> [HintSet] {
@@ -26,6 +30,7 @@ public struct Fetcher: Sendable {
 
     public func fetch(_ source: any HintSource, for date: PuzzleDate) async -> Result<[Hint], HintError> {
         var request = URLRequest(url: source.url(for: date))
+        request.timeoutInterval = timeout
         request.setValue("nytcHints/0.1", forHTTPHeaderField: "User-Agent")
 
         let data: Data

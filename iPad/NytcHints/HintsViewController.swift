@@ -8,6 +8,7 @@ final class HintsViewController: UIViewController {
     private let controls = UIStackView()
     private let controlsSpacer = UIView()
     private let cardsStack = UIStackView()
+    private let contentStack = UIStackView()
     private let statusLabel = UILabel()
     private let spinner = UIActivityIndicatorView(style: .large)
     private let refreshControl = UIRefreshControl()
@@ -54,9 +55,11 @@ final class HintsViewController: UIViewController {
 
         spinner.hidesWhenStopped = true
 
-        let content = UIStackView(arrangedSubviews: [controls, cardsStack, statusLabel, spinner])
+        let content = contentStack
+        [controls, cardsStack, statusLabel, spinner].forEach(content.addArrangedSubview)
         content.axis = .vertical
         content.spacing = 24
+        content.isLayoutMarginsRelativeArrangement = true
         content.translatesAutoresizingMaskIntoConstraints = false
 
         refreshControl.addTarget(self, action: #selector(refreshPulled), for: .valueChanged)
@@ -68,20 +71,19 @@ final class HintsViewController: UIViewController {
         scrollView.addSubview(content)
         view.addSubview(scrollView)
 
-        // The content scrolls vertically only: its width is the scroll view's width, so the
-        // horizontal content size is fully determined and the readable-width insets line up with it.
-        let readable = scrollView.readableContentGuide
+        // The content is exactly as wide as the scroll view, so it scrolls vertically only.
+        // Readable-width insets are applied as layout margins in viewDidLayoutSubviews.
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
 
-            scrollView.contentLayoutGuide.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
-            content.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: 24),
-            content.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -24),
-            content.leadingAnchor.constraint(equalTo: readable.leadingAnchor),
-            content.trailingAnchor.constraint(equalTo: readable.trailingAnchor),
+            content.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            content.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            content.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            content.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            content.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
         ])
 
         NotificationCenter.default.addObserver(
@@ -92,6 +94,16 @@ final class HintsViewController: UIViewController {
             name: UIApplication.significantTimeChangeNotification, object: nil)
 
         loadHints()
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        let readable = view.readableContentGuide.layoutFrame
+        let margins = NSDirectionalEdgeInsets(
+            top: 24, leading: readable.minX, bottom: 24, trailing: view.bounds.width - readable.maxX)
+        if contentStack.directionalLayoutMargins != margins {
+            contentStack.directionalLayoutMargins = margins
+        }
     }
 
     /// Source and date sit side by side when there's room, and stack when the width is compact

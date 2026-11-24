@@ -26,6 +26,8 @@ Each source is a URL plus a parser for the response.
 
 Open it in Xcode, pick an iPad simulator, and run. To run on a real iPad, set your team under Signing & Capabilities first.
 
+The `NytcHintsUITests` target holds smoke tests for the screen (controls, source switching, and cards or a status message). They use the live sites, so they accept either outcome of a load. Run them from Xcode with the NytcHints scheme.
+
 ## Layout
 
 - `Sources/NytcHintsCore/`: shared models, sources, parsing and fetching

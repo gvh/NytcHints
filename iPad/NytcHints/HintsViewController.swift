@@ -55,6 +55,7 @@ final class HintsViewController: UIViewController {
         statusLabel.textAlignment = .center
         statusLabel.numberOfLines = 0
         statusLabel.adjustsFontForContentSizeCategory = true
+        statusLabel.accessibilityIdentifier = "statusLabel"
 
         spinner.hidesWhenStopped = true
 

@@ -91,7 +91,6 @@ public enum HintError: Error, Sendable, CustomStringConvertible {
     case network(String)
     case badStatus(Int)
     case parse(String)
-    case notImplemented
 
     public var description: String {
         switch self {
@@ -99,7 +98,6 @@ public enum HintError: Error, Sendable, CustomStringConvertible {
         case .network(let message): "network error: \(message)"
         case .badStatus(let code): "unexpected HTTP status \(code)"
         case .parse(let message): "could not parse response: \(message)"
-        case .notImplemented: "not implemented yet"
         }
     }
 }

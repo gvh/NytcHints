@@ -35,6 +35,9 @@ final class HintsViewController: UIViewController {
         datePicker.addTarget(self, action: #selector(selectionChanged), for: .valueChanged)
         updateDateLimits()
 
+        // Side by side, the spacer (not the picker or the segments) absorbs the extra width.
+        [sourceControl, datePicker].forEach { $0.setContentHuggingPriority(.required, for: .horizontal) }
+        controlsSpacer.setContentHuggingPriority(.fittingSizeLevel, for: .horizontal)
         controls.addArrangedSubview(sourceControl)
         controls.addArrangedSubview(controlsSpacer)
         controls.addArrangedSubview(datePicker)

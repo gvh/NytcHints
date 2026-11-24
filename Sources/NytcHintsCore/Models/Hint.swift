@@ -5,7 +5,9 @@ public enum HintColor: String, CaseIterable, Sendable {
     case yellow, green, blue, purple
 
     public init?(label: String) {
-        self.init(rawValue: label.trimmingCharacters(in: .whitespaces).lowercased())
+        let normalized = label.trimmingCharacters(in: .whitespaces).lowercased()
+        // TechRadar's 2026-11-21 article spelled green "Geen".
+        self.init(rawValue: normalized == "geen" ? "green" : normalized)
     }
 
     public var label: String { rawValue.capitalized }

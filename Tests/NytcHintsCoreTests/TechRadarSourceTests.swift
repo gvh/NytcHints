@@ -40,6 +40,12 @@ struct TechRadarSourceTests {
         #expect(!hints.contains { $0.text.contains("SPOILER") })
     }
 
+    @Test func acceptsMisspelledGreenLabel() throws {
+        let html = Self.fixture().replacing("<strong>GREEN: </strong>", with: "Geen: ")
+        let hints = try source.parse(Data(html.utf8), for: date)
+        #expect(hints[1] == Hint(color: .green, text: "Ping pong equipment"))
+    }
+
     @Test func rejectsArticleFromAnotherYear() {
         let html = Self.fixture(published: "2025-10-03T23:00:00Z")
         #expect(throws: HintError.self) { try source.parse(Data(html.utf8), for: date) }

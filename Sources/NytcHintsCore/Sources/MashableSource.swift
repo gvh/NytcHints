@@ -22,6 +22,7 @@ public struct MashableSource: HintSource {
 
     public func parse(_ data: Data, for date: PuzzleDate) throws(HintError) -> [Hint] {
         let html = try HTML.string(from: data)
+        try HTML.checkPublished(html, for: date)
         guard let section = HTML.section(afterHeadingContaining: "hint", in: html) else {
             throw .parse("hint section not found")
         }

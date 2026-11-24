@@ -14,28 +14,44 @@ enum HTML {
     static func section(afterHeadingContaining keyword: String, in html: String) -> Substring? {
         // Headings may wrap their text in inner tags (`<h2><span>…</span></h2>`), so strip them before matching.
         let heading = /<h2[^>]*>(?<title>.*?)<\/h2>/.dotMatchesNewlines()
-        guard let start = html.matches(of: heading).first(where: { text(from: String($0.title)).localizedCaseInsensitiveContains(keyword) }) else {
+        // Not `localizedCaseInsensitiveContains`: it depends on the user's locale (Turkish "I"/"ı").
+        guard let start = html.matches(of: heading).first(where: { text(from: String($0.title)).range(of: keyword, options: .caseInsensitive) != nil }) else {
             return nil
         }
         let rest = html[start.range.upperBound...]
-        let end = rest.range(of: "<h2")?.lowerBound ?? rest.endIndex
+        let end = rest.range(of: "<h2", options: .caseInsensitive)?.lowerBound ?? rest.endIndex
         return rest[..<end]
     }
 
     /// The `content` of `<meta property="…">`, if present.
+    /// Handles single or double quotes, either attribute order, and `>` inside attribute values.
     static func metaContent(property: String, in html: String) -> String? {
-        for tag in html.matches(of: /<meta\s[^>]*>/) {
-            let text = tag.output
-            guard text.contains("property=\"\(property)\""),
-                  let content = text.firstMatch(of: /content="(?<value>[^"]*)"/)
-            else { continue }
-            return decodeEntities(String(content.value))
+        for tag in html.matches(of: /<meta\s(?:"[^"]*"|'[^']*'|[^>"'])*>/) {
+            let attributes = attributes(of: tag.output)
+            if attributes["property"] == property, let content = attributes["content"] {
+                return decodeEntities(content)
+            }
         }
         return nil
     }
 
-    /// Articles go up the evening before the puzzle date, so allow a small window around it.
-    /// Guards against a site redirecting a date's URL to a different year's puzzle.
+    /// The quoted attributes of one tag, keyed by lowercased name (the first occurrence wins).
+    private static func attributes(of tag: Substring) -> [String: String] {
+        var result: [String: String] = [:]
+        for match in tag.matches(of: /(?<name>[\w:-]+)\s*=\s*(?:"(?<double>[^"]*)"|'(?<single>[^']*)')/) {
+            let name = match.name.lowercased()
+            if result[name] == nil {
+                result[name] = String(match.double ?? match.single ?? "")
+            }
+        }
+        return result
+    }
+
+    /// Checks that the article was published close to the puzzle date.
+    /// Articles go up the evening before the puzzle date. The timestamp's date is read as written
+    /// (often UTC), so it can be a day ahead of the local puzzle day, and a day or two of slack
+    /// covers early postings. The window is the published day being 3 days before to 1 day after
+    /// `date`. It guards against a site redirecting a date's URL to a different year's puzzle.
     static func checkPublished(_ html: String, for date: PuzzleDate) throws(HintError) {
         guard let published = metaContent(property: "article:published_time", in: html),
               let day = PuzzleDate(string: String(published.prefix(10)))

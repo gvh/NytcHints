@@ -13,7 +13,9 @@ struct MashableSourceTests {
     }
 
     /// Markup mirrors the live page (2026-09-17), with made-up answer sections after the hints.
-    static let fixture = """
+    static func fixture(published: String = "2026-09-17T03:00:00+00:00") -> String {
+        """
+    <meta property="article:published_time" content="\(published)">
     <h2>What is Connections?</h2><p>A word game.</p>
     <h2>Here's a hint for today's Connections categories</h2><p>Want a hint about the categories without being told the categories? Then give these a try:</p>
     <section aria-label="Newsletter Sign-Up"><div>Sign up</div></section>
@@ -24,9 +26,12 @@ struct MashableSourceTests {
     <h2>What is the answer to Connections today</h2>
     <ul><li><p>SPOILER: ONE, TWO, THREE, FOUR</p></li></ul>
     """
+    }
+
+    private static let published = #"<meta property="article:published_time" content="2026-09-17T03:00:00+00:00">"#
 
     @Test func parsesOnlyHintSection() throws {
-        let hints = try source.parse(Data(Self.fixture.utf8), for: date)
+        let hints = try source.parse(Data(Self.fixture().utf8), for: date)
         #expect(hints == [
             Hint(color: .yellow, text: "Bendable"),
             Hint(color: .green, text: "Down below"),
@@ -36,18 +41,28 @@ struct MashableSourceTests {
         #expect(!hints.contains { $0.text.contains("SPOILER") })
     }
 
+    @Test func rejectsArticleFromAnotherYear() {
+        let html = Self.fixture(published: "2025-09-17T03:00:00+00:00")
+        #expect(throws: HintError.self) { try source.parse(Data(html.utf8), for: date) }
+    }
+
+    @Test func missingPublishDateThrows() {
+        let html = "<h2>Here's a hint</h2><ul><li><p>Yellow: <strong>Bendable</strong></p></li></ul>"
+        #expect(throws: HintError.self) { try source.parse(Data(html.utf8), for: date) }
+    }
+
     @Test func unrecognizedColorThrows() {
-        let html = "<h2>Here's a hint</h2><ul><li><p>Orange: <strong>Nope</strong></p></li></ul>"
+        let html = Self.published + "<h2>Here's a hint</h2><ul><li><p>Orange: <strong>Nope</strong></p></li></ul>"
         #expect(throws: HintError.self) { try source.parse(Data(html.utf8), for: date) }
     }
 
     @Test func missingHintSectionThrows() {
-        let html = "<h2>What is the answer to Connections today</h2><ul><li>SPOILER</li></ul>"
+        let html = Self.published + "<h2>What is the answer to Connections today</h2><ul><li>SPOILER</li></ul>"
         #expect(throws: HintError.self) { try source.parse(Data(html.utf8), for: date) }
     }
 
     @Test func hintSectionWithoutListThrows() {
-        let html = "<h2>Here's a hint</h2><p>none</p><h2>Answers</h2><ul><li>SPOILER</li></ul>"
+        let html = Self.published + "<h2>Here's a hint</h2><p>none</p><h2>Answers</h2><ul><li>SPOILER</li></ul>"
         #expect(throws: HintError.self) { try source.parse(Data(html.utf8), for: date) }
     }
 }

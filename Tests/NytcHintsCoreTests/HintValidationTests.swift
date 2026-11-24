@@ -63,19 +63,34 @@ struct HintValidationTests {
         #expect(!Hint.looksLikeAnswerList(text))
     }
 
-    @Test func answerListFailsValidationWithoutEchoingIt() {
+    @Test func answerListIsWithheldWithoutAffectingOtherHints() throws {
         let hints: [Hint] = [
             Hint(color: .yellow, text: "y"),
             Hint(color: .green, text: "g"),
             Hint(color: .blue, text: "BEND, FLEX, TWIST, TURN"),
             Hint(color: .purple, text: "p"),
         ]
-        do {
-            _ = try hints.validated()
-            Issue.record("expected validation to fail")
-        } catch {
-            #expect(!error.description.contains("BEND"))
-        }
+        let validated = try hints.validated()
+        #expect(validated.map(\.color) == [.yellow, .green, .blue, .purple])
+        #expect(validated.map(\.isWithheld) == [false, false, true, false])
+        #expect(validated[0].text == "y" && validated[1].text == "g" && validated[3].text == "p")
+        #expect(validated[2].text == Hint.withheldText)
+        #expect(!validated.contains { $0.text.contains("BEND") })
+    }
+
+    @Test func slashPairsAreWithheldNotShown() throws {
+        let hints: [Hint] = [
+            Hint(color: .yellow, text: "Hot/cold, up/down, in/out"),
+            Hint(color: .green, text: "g"),
+            Hint(color: .blue, text: "b"),
+            Hint(color: .purple, text: "p"),
+        ]
+        #expect(try hints.validated().map(\.isWithheld) == [true, false, false, false])
+    }
+
+    @Test func allHintsLookingLikeAnswersRejectsTheSet() {
+        let hints = HintColor.allCases.map { Hint(color: $0, text: "ONE, TWO, THREE, FOUR") }
+        #expect(throws: HintError.self) { try hints.validated() }
     }
 
     @Test func colorLabelsAreCaseInsensitive() {

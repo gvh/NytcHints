@@ -97,13 +97,11 @@ struct FetcherTests {
         }
     }
 
-    @Test func answerListIsRejectedWithoutShowingIt() async {
+    @Test func answerListIsWithheldWithoutShowingIt() async throws {
         let result = await fetch(source("leak"), .status(200, Data("a|b|c|BEND, FLEX, TWIST, TURN".utf8)))
-        guard case .failure(let error) = result else {
-            Issue.record("expected the answer list to be rejected")
-            return
-        }
-        #expect(!error.description.contains("BEND"))
+        let hints = try result.get()
+        #expect(hints.map(\.isWithheld) == [false, false, false, true])
+        #expect(!hints.contains { $0.text.contains("BEND") })
     }
 
     @Test func fetchAllKeepsSourceOrderAndIsolatesFailures() async {

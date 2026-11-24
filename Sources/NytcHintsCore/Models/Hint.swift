@@ -16,10 +16,17 @@ public struct Hint: Equatable, Sendable {
     public var color: HintColor
     public var text: String
 
-    public init(color: HintColor, text: String) {
+    /// True when the real text was replaced because it looked like the answers.
+    public var isWithheld: Bool
+
+    public init(color: HintColor, text: String, isWithheld: Bool = false) {
         self.color = color
         self.text = text
+        self.isWithheld = isWithheld
     }
+
+    /// Shown in place of a hint that looked like an answer list.
+    public static let withheldText = "Hidden: this hint looked like it gave away the answers."
 
     /// Parses a "Yellow: Bendable" line. `labelCorrections` maps a site's known misspellings
     /// (lowercased) to the intended color label.
@@ -54,15 +61,14 @@ public struct Hint: Equatable, Sendable {
 }
 
 extension [Hint] {
-    /// Ensures exactly one hint per color, none of which looks like an answer list,
-    /// and returns them in yellow → purple order.
+    /// Ensures exactly one hint per color and returns them in yellow → purple order.
+    ///
+    /// A hint that looks like an answer list is replaced with a placeholder, so only that one is
+    /// excluded and the rest still show. If every hint looks like an answer list, the page is
+    /// probably the answers section, so the whole set is rejected.
     public func validated() throws(HintError) -> [Hint] {
         var byColor: [HintColor: Hint] = [:]
         for hint in self {
-            // The text isn't included in the error so a leaked answer is never shown.
-            guard !Hint.looksLikeAnswerList(hint.text) else {
-                throw .answersDetected(hint.color)
-            }
             guard byColor.updateValue(hint, forKey: hint.color) == nil else {
                 throw .parse("duplicate \(hint.color.label) hint")
             }
@@ -71,7 +77,14 @@ extension [Hint] {
         guard missing.isEmpty else {
             throw .parse("missing \(missing.map(\.label).joined(separator: ", ")) hint")
         }
-        return HintColor.allCases.map { byColor[$0]! }
+
+        let ordered = HintColor.allCases.map { byColor[$0]! }
+        let flagged = ordered.filter { Hint.looksLikeAnswerList($0.text) }
+        guard flagged.count < ordered.count else { throw .answersDetected }
+        // The original text is never kept, so a withheld answer can't reach the UI or output.
+        return ordered.map { hint in
+            flagged.contains(hint) ? Hint(color: hint.color, text: Hint.withheldText, isWithheld: true) : hint
+        }
     }
 }
 
@@ -91,8 +104,8 @@ public enum HintError: Error, Sendable, CustomStringConvertible {
     case network(String)
     case badStatus(Int)
     case parse(String)
-    /// A hint looked like the answer words, so the whole set is withheld.
-    case answersDetected(HintColor)
+    /// Every hint looked like the answer words, so the whole set is withheld.
+    case answersDetected
 
     public var description: String {
         switch self {
@@ -100,7 +113,7 @@ public enum HintError: Error, Sendable, CustomStringConvertible {
         case .network(let message): "network error: \(message)"
         case .badStatus(let code): "unexpected HTTP status \(code)"
         case .parse(let message): "could not parse response: \(message)"
-        case .answersDetected(let color): "\(color.label) hint looks like a list of answers, so none are shown"
+        case .answersDetected: "every hint looks like a list of answers, so none are shown"
         }
     }
 }

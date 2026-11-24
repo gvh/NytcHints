@@ -206,8 +206,8 @@ private extension HintError {
             "No hints have been posted for this date yet. Pull down to try again."
         case .badStatus:
             "The site had a problem. Pull down to try again later."
-        case .answersDetected(let color):
-            "The \(color.label.lowercased()) hint looked like it gave away the answers, so none are shown. Try another source."
+        case .answersDetected:
+            "This page looked like it gave away the answers, so no hints are shown. Try another source."
         case .parse, .invalidDate:
             "Couldn't read the hints from this page. The site may have changed its layout. Try another source."
         }

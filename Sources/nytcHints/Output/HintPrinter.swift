@@ -3,8 +3,10 @@ import NytcHintsCore
 
 /// Prints hints grouped by source. Only hint text is shown, never answers.
 struct HintPrinter {
-    /// Color the group labels only when writing to a terminal.
-    var useColor = isatty(STDOUT_FILENO) != 0
+    /// Color the group labels only when writing to a terminal, unless NO_COLOR is set (https://no-color.org).
+    var useColor = isatty(STDOUT_FILENO) != 0 && ProcessInfo.processInfo.environment["NO_COLOR"].map(\.isEmpty) ?? true
+
+    private let labelWidth = HintColor.allCases.map(\.label.count).max()!
 
     func print(_ sets: [HintSet], for date: PuzzleDate) {
         Swift.print("Connections hints for \(date)")
@@ -13,9 +15,8 @@ struct HintPrinter {
             Swift.print("\n== \(set.sourceName) ==")
             switch set.result {
             case .success(let hints):
-                let width = HintColor.allCases.map(\.label.count).max()!
                 for hint in hints {
-                    let label = hint.color.label.padding(toLength: width, withPad: " ", startingAt: 0)
+                    let label = hint.color.label.padding(toLength: labelWidth, withPad: " ", startingAt: 0)
                     Swift.print("  \(styled(label, hint.color))  \(hint.text)")
                 }
             case .failure(let error):

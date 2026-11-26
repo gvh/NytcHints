@@ -121,23 +121,24 @@ final class HintsViewController: UIViewController {
         controlsSpacer.isHidden = stacked
     }
 
-    /// Puzzles exist from the first Connections day through tomorrow's (posted the evening before).
+    /// Only today's puzzle matters, with yesterday's as the one step back.
     private func updateDateLimits() {
         let calendar = Calendar.current
-        datePicker.minimumDate = PuzzleDate.firstPuzzle.startOfDay
-        if let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: Date())) {
-            datePicker.maximumDate = calendar.date(byAdding: .day, value: 1, to: tomorrow)?.addingTimeInterval(-1)
-        }
+        let startOfToday = calendar.startOfDay(for: Date())
+        datePicker.minimumDate = calendar.date(byAdding: .day, value: -1, to: startOfToday)
+        datePicker.maximumDate = calendar.date(byAdding: .day, value: 1, to: startOfToday)?.addingTimeInterval(-1)
     }
 
-    /// If the app was left open past midnight, roll the limits forward, and the picker too if it was showing "today".
+    /// If the app was left open past midnight, roll the limits forward. The picker follows if it was showing
+    /// "today", or if its day has fallen out of the new range.
     @objc private func dayMayHaveChanged() {
         let today = PuzzleDate.today
         guard today != lastToday else { return }
         let wasShowingToday = PuzzleDate(date: datePicker.date) == lastToday
         lastToday = today
         updateDateLimits()
-        if wasShowingToday {
+        let outOfRange = datePicker.minimumDate.map { datePicker.date < $0 } ?? false
+        if wasShowingToday || outOfRange {
             datePicker.setDate(Date(), animated: false)
             loadHints()
         }
